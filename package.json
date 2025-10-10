@@ -70,7 +70,6 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@anatine/zod-nestjs": "^2.0.12",
     "@anatine/zod-openapi": "^2.2.8",
     "@eslint/eslintrc": "^3.2.0",
     "@eslint/js": "^9.18.0",
