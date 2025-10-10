@@ -3,12 +3,13 @@ services:
     name: odds-backend
     env: node
     plan: free
-    buildCommand: npm install --legacy-peer-deps && npm run build
-    startCommand: npm run start:prod
+    buildCommand: |
+      npm install --legacy-peer-deps
+      npm install -g @nestjs/cli
+      npm run build
+    startCommand: node dist/main.js
     envVars:
       - key: NODE_ENV
         value: production
-      - key: MONGODB_URI
-        value: mongodb+srv://app_casino:wbQ7poyPWs3A8usn@cluster0.iya2yjy.mongodb.net/?retryWrites=true&w=majority
       - key: PORT
-        value: 10000
+        value: 3000
