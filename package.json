@@ -53,6 +53,7 @@
     "express": "^5.1.0",
     "google-auth-library": "^9.15.1",
     "ioredis": "^5.8.0",
+    "keyv": "^5.5.3",
     "mongoose": "^8.12.1",
     "multer": "^1.4.5-lts.1",
     "nestjs-object-id": "^3.0.0",
