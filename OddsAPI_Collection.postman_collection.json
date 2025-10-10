@@ -1,0 +1,59 @@
+{
+  "info": {
+    "name": "OddsAPI.io - Sports Betting Backend (Motaz)",
+    "_postman_id": "a4f8b61c-bd55-4db2-b2c1-8d2e7c701e8a",
+    "description": "Collection Postman pour tester le backend NestJS de Motaz avec Odds-API.io (Pro Plan - clé intégrée).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Liste des sports",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "http://localhost:3000/api/odds/sports",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["api", "odds", "sports"]
+        }
+      }
+    },
+    {
+      "name": "Événements par sport",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "http://localhost:3000/api/odds/events/soccer_epl",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["api", "odds", "events", "soccer_epl"]
+        }
+      }
+    },
+    {
+      "name": "Cotes d’un événement",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "http://localhost:3000/api/odds/odds/<eventId>",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["api", "odds", "odds", "<eventId>"]
+        },
+        "description": "Remplace <eventId> par un ID réel obtenu via /events/soccer_epl"
+      }
+    }
+  ]
+}

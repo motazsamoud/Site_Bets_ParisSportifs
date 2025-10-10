@@ -17,6 +17,7 @@ import { Buffer } from 'buffer';
 // Entities
 import { User, UserDocument } from './entities/user.entity';
 import { Token, TokenDocument } from './entities/Token.entity';
+import { WalletService } from 'src/wallet/wallet.service';
 
 // DTOs
 import { CreateUserDto } from './dto/create-user.dto';
@@ -34,6 +35,8 @@ export class UserService {
       @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
       @InjectModel(Token.name) private readonly tokenModel: Model<TokenDocument>,
       private readonly jwtService: JwtService,
+      private readonly walletService: WalletService, // ✅ injection du service wallet
+
   ) {}
 
   // ---------------------------
@@ -98,6 +101,14 @@ export class UserService {
       expiresAt,
     });
 
+    // ✅ Crée automatiquement un wallet à 0 si inexistant
+    try {
+      await this.walletService.getOrCreate(user.id);
+      console.log(`💰 Wallet prêt pour l’utilisateur ${user.username}`);
+    } catch (err) {
+      console.error(`❌ Erreur création wallet pour ${user.username}:`, err);
+    }
+
     return {
       access_token,
       user: {
@@ -108,6 +119,8 @@ export class UserService {
       },
     };
   }
+
+
 
   async saveToken(userId: string, token: string, expiresAt: Date): Promise<Token> {
     return new this.tokenModel({ userId, token, expiresAt }).save();

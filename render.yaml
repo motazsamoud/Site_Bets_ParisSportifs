@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: odds-backend
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm run start:prod
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        value: mongodb+srv://app_casino:wbQ7poyPWs3A8usn@cluster0.iya2yjy.mongodb.net/?retryWrites=true&w=majority
+      - key: PORT
+        value: 10000

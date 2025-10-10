@@ -10,6 +10,8 @@ import {
   Req,
   UseGuards,
   NotFoundException,
+  Headers,
+  ForbiddenException,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -20,16 +22,28 @@ import { ResetPasswordDto } from './dto/ResetPasswordDto';
 import { JwtAuthGuard } from './jwt-auth/jwt-auth.guard';
 import { User } from './entities/user.entity';
 import { Request } from 'express';
-import {Role} from "src/user/entities/Role.enum";
+import { Role } from 'src/user/entities/Role.enum';
+import { JwtService } from '@nestjs/jwt';
 
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(private readonly userService: UserService,
+              private readonly jwtService: JwtService,) {}
 
   // --- CRUD de base ---
 
   @Get('get')
-  async findAllUsers() {
+  async findAllUsers(@Headers() headers: Record<string, string | undefined>) {
+    const token = headers.authorization?.replace('Bearer ', '');
+    if (!token) throw new ForbiddenException('Token manquant');
+
+    try {
+      const decoded = this.jwtService.verify(token);
+      if (decoded.role !== 'admin') throw new ForbiddenException('Accès refusé');
+    } catch (e) {
+      throw new ForbiddenException('Token invalide');
+    }
+
     return this.userService.findAllUsers();
   }
 
