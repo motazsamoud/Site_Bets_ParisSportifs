@@ -1,5 +1,10 @@
-// src/user/dto/create-user.dto.ts
-import { createZodDto } from '@anatine/zod-nestjs';
-import {CreateUserSchema} from "src/user/shemas/create-user.schema";
+import { Role } from '../entities/Role.enum';
 
-export class CreateUserDto extends createZodDto(CreateUserSchema) {}
+export class CreateUserDto {
+    email: string;
+    password?: string;
+    username: string;
+    dateOfBirth?: Date;
+    role: Role;
+    status?: string;
+}

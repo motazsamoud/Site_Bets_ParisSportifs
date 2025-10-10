@@ -1,5 +1,10 @@
-// src/user/dto/update-user.dto.ts
-import { createZodDto } from '@anatine/zod-nestjs';
-import {UpdateUserSchema} from "src/user/shemas/update-user.schema";
+import { Role } from '../entities/Role.enum';
 
-export class UpdateUserDto extends createZodDto(UpdateUserSchema) {}
+export class UpdateUserDto {
+    email?: string;
+    password?: string;
+    username?: string;
+    dateOfBirth?: Date;
+    role?: Role;
+    status?: string;
+}
