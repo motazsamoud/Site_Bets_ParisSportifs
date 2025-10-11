@@ -21,12 +21,16 @@ async function bootstrap() {
   app.useWebSocketAdapter(new IoAdapter(app));
 
   // CORS (OK pour images /uploads en GET)
-  app.enableCors({
-    origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization','x-user-id',],
-    credentials: false,
-  });
+app.enableCors({
+  origin: [
+    'https://site-bets-paris-sportifs.vercel.app', // ton site front déployé
+    'http://localhost:3000', // pour tests en local
+  ],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id'],
+  credentials: true, // important si tu veux envoyer token ou cookies
+});
+
 
   // ⬇️ REND LES FICHIERS D'UPLOAD ACCESSIBLES : http://<host>:3000/uploads/<fileName>
   const uploadsPath = join(process.cwd(), 'uploads');
