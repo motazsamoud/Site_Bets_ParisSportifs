@@ -14,8 +14,8 @@ export class Token {
   token: string;
 
   @Prop({ enum: Role, required: true })
-    role: Role;
-  
+  role: Role;
+
   @Prop({ required: true })
   expiresAt: Date;
 }
