@@ -35,16 +35,6 @@ app.enableCors({
 });
 
 
-  app.enableCors({
-    origin: [
-      'https://site-bets-paris-sportifs.vercel.app',
-      'http://localhost:3000'
-    ],
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id'],
-    credentials: true,
-  });
-
 
 
   // ⬇️ REND LES FICHIERS D'UPLOAD ACCESSIBLES : http://<host>:3000/uploads/<fileName>
