@@ -4,6 +4,10 @@ import { useBetStore } from "@/store/useBetStore";
 import { useWalletStore } from "@/store/useWalletStore";
 import { useState, useMemo } from "react";
 
+/**
+ * Composant Feuille de pari
+ * Compatible local + Render + Vercel
+ */
 export default function BetSlip({ userId }: { userId?: string }) {
   const { slip, removeBet, clearSlip } = useBetStore();
   const { fetchBalance } = useWalletStore();
@@ -20,56 +24,69 @@ export default function BetSlip({ userId }: { userId?: string }) {
   // ✅ Calcul du revenu potentiel
   const potentialWin = stake > 0 ? stake * totalOdds : 0;
 
+  // ✅ Détermination automatique du backend (local / prod)
+  const API_BASE =
+    process.env.NEXT_PUBLIC_BACKEND_BASE_URL ||
+    (typeof window !== "undefined" &&
+    window.location.hostname.includes("localhost"))
+      ? "http://192.168.56.1:3000"
+      : "https://odds-backend-fkh4.onrender.com";
+
   async function handlePlace() {
-  if (slip.length === 0) return alert("Aucun pari sélectionné !");
-  if (stake <= 0) return alert("Veuillez entrer une mise valide !");
-  setLoading(true);
+    if (slip.length === 0) return alert("Aucun pari sélectionné !");
+    if (stake <= 0) return alert("Veuillez entrer une mise valide !");
+    setLoading(true);
 
-  try {
-    const res = await fetch("http://192.168.56.1:3000/api/bets", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-user-id": userId || "demo-user",
-      },
-      body: JSON.stringify({
-        stake,
-        selections: slip.map((b) => ({
-          eventId: b.fixtureId,                 // ✅ correspond au champ attendu
-          outcomeKey:
-            b.selection === "1"
-              ? "home"
-              : b.selection === "X"
-              ? "draw"
-              : b.selection === "2"
-              ? "away"
-              : b.selection.toLowerCase(),      // ✅ transforme en outcomeKey
-          market: b.market,
-          price: Number(b.odds),
-          label: `${b.selection} @ ${b.odds}`,  // ✅ optionnel, utile pour l’affichage
-          home: b.event?.split(" vs ")[0] || "",
-          away: b.event?.split(" vs ")[1] || "",
-        })),
-      }),
-    });
+    try {
+      const res = await fetch(`${API_BASE}/api/bets`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": userId || "demo-user",
+        },
+        body: JSON.stringify({
+          stake,
+          selections: slip.map((b) => ({
+            eventId: b.fixtureId,
+            outcomeKey:
+              b.selection === "1"
+                ? "home"
+                : b.selection === "X"
+                ? "draw"
+                : b.selection === "2"
+                ? "away"
+                : b.selection.toLowerCase(),
+            market: b.market,
+            price: Number(b.odds),
+            label: `${b.selection} @ ${b.odds}`,
+            home: b.event?.split(" vs ")[0] || "",
+            away: b.event?.split(" vs ")[1] || "",
+          })),
+        }),
+      });
 
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || "Erreur serveur");
+      // 🔎 Vérifie le statut HTTP
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.message || "Erreur serveur inconnue");
+      }
 
-    alert(
-      `✅ Pari placé ! Gain possible : ${(data.potentialWinCents / 100).toFixed(2)} ${data.currency || "TND"}`
-    );
+      const data = await res.json();
+      alert(
+        `✅ Pari placé ! Gain possible : ${(data.potentialWinCents / 100).toFixed(2)} ${
+          data.currency || "TND"
+        }`
+      );
 
-    clearSlip();
-    await fetchBalance();
-  } catch (err: any) {
-    console.error("❌ Erreur pari:", err);
-    alert(`Erreur: ${err.message}`);
-  } finally {
-    setLoading(false);
+      clearSlip();
+      await fetchBalance();
+    } catch (err: any) {
+      console.error("❌ Erreur pari:", err);
+      alert(`Erreur: ${err.message || "Impossible de communiquer avec le serveur"}`);
+    } finally {
+      setLoading(false);
+    }
   }
-}
-
 
   return (
     <div className="bg-[#111a24] border border-white/10 p-4 rounded-xl w-[320px]">
