@@ -27,7 +27,7 @@ app.enableCors({
     'http://localhost:3000',
     'http://localhost:3001',
     'http://192.168.56.1:3001',
-    'https://site-bets-paris-sportifs.vercel.app',
+    'https://site-bets-paris-sportifs-git-frontend-motazsamouds-projects.vercel.app',
   ],
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id'],
