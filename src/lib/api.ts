@@ -1,11 +1,11 @@
 import axios from "axios";
 
 export const API_BASE =
-  process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "http://localhost:3000/api/odds";
+  process.env.NEXT_PUBLIC_API_BASE || "https://odds-backend-fkh4.onrender.com/api/odds";
 
 export const api = axios.create({
   baseURL: API_BASE,
-  timeout: 10_000,
+  timeout: 20000, // Render est lent à froid
 });
 
 export async function get<T>(url: string, params?: any): Promise<T> {

@@ -8,7 +8,7 @@ import { useBetStore } from "@/store/useBetStore";
 import BetSlip from "@/components/BetSlip";
 
 const API_BASE =
-  process.env.NEXT_PUBLIC_BACKEND_BASE_URL ?? "http://localhost:3000";
+  process.env.NEXT_PUBLIC_BACKEND_BASE_URL ?? "https://odds-backend-fkh4.onrender.com";
 
 /* ----------------------------- helpers ----------------------------- */
 function fmtDate(iso?: string) {

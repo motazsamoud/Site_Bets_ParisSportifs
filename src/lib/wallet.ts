@@ -1,5 +1,5 @@
 // 📁 app/api/wallet.ts
-const BASE = process.env.NEXT_PUBLIC_BACKEND_BASE_URL ?? "http://localhost:3000";
+const BASE = process.env.NEXT_PUBLIC_BACKEND_BASE_URL ?? "https://odds-backend-fkh4.onrender.com";
 
 /** 🔹 Récupère le wallet de l'utilisateur connecté */
 export async function getWallet() {

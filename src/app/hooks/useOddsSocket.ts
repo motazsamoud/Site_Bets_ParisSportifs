@@ -4,7 +4,7 @@
 import { useEffect, useRef } from "react";
 import { io, Socket } from "socket.io-client";
 
-const WS_BASE = process.env.NEXT_PUBLIC_BACKEND_WS_URL ?? "http://localhost:3000";
+const WS_BASE = process.env.NEXT_PUBLIC_BACKEND_WS_URL ?? "https://odds-backend-fkh4.onrender.com";
 
 export function useOddsSocket(eventId: string, onUpdate: (data: any) => void) {
   const socketRef = useRef<Socket | null>(null);

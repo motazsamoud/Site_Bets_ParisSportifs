@@ -24,7 +24,7 @@ export const useWalletStore = create<WalletStore>((set) => ({
       set({ loading: true });
 
       const base =
-        process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "http://localhost:3000";
+        process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "https://odds-backend-fkh4.onrender.com";
       const res = await fetch(`${base}/api/wallet`, {
         headers: {
           "Content-Type": "application/json",
@@ -56,7 +56,7 @@ export const useWalletStore = create<WalletStore>((set) => ({
   faucet: async (amount = 1000000) => {
     try {
       const base =
-        process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "http://localhost:3000";
+        process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "https://odds-backend-fkh4.onrender.com";
       const res = await fetch(`${base}/api/wallet/faucet`, {
         method: "POST",
         headers: {

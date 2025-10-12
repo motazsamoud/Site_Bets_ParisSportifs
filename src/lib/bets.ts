@@ -1,5 +1,5 @@
 const BASE =
-  process.env.NEXT_PUBLIC_BACKEND_BASE_URL ?? "http://localhost:3000";
+  process.env.NEXT_PUBLIC_BACKEND_BASE_URL ?? "https://odds-backend-fkh4.onrender.com";
 
 export async function placeBet(userId: string, slip: any, stake: number) {
   const res = await fetch(`${BASE}/api/bets`, {

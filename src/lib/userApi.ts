@@ -2,7 +2,7 @@
 import axios from "axios";
 
 const BACKEND_BASE =
-  process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "http://localhost:3000";
+  process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "https://odds-backend-fkh4.onrender.com";
 
 export const userApi = axios.create({
   baseURL: `${BACKEND_BASE}/user`,

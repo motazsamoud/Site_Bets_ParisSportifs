@@ -1,7 +1,7 @@
 "use client";
 import { create } from "zustand";
 
-const BASE = process.env.NEXT_PUBLIC_BACKEND_BASE_URL ?? "http://localhost:3000";
+const BASE = process.env.NEXT_PUBLIC_BACKEND_BASE_URL ?? "https://odds-backend-fkh4.onrender.com";
 
 type Selection = {
   fixtureId: string;
