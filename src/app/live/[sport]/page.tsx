@@ -157,6 +157,13 @@ function MatchRow({ ev, regions }: { ev: Event; regions: string }) {
       stopped = true;
     };
   }, [ev.id, qs]);
+  if (
+  !grids?.h2h?.home?.price &&
+  !grids?.h2h?.draw?.price &&
+  !grids?.h2h?.away?.price
+) {
+  return null;
+}
 
   useMultiOddsSocket([String(ev.id)], (payload) => {
     if (String(payload.eventId) === String(ev.id) && payload.data?.h2h) {
@@ -227,6 +234,16 @@ function MatchRow({ ev, regions }: { ev: Event; regions: string }) {
       </button>
     );
   };
+
+  // ❗️N'affiche pas le match s'il n'a aucune cote valide
+if (
+  !grids?.h2h?.home?.price &&
+  !grids?.h2h?.draw?.price &&
+  !grids?.h2h?.away?.price
+) {
+  return null;
+}
+
 
   return (
     <div className="space-y-2">
