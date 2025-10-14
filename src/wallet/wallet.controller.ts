@@ -5,17 +5,21 @@ import {
     Headers,
     Post,
     BadRequestException,
-    ForbiddenException, Param, NotFoundException, HttpException, HttpStatus,
+    ForbiddenException,
+    Param,
+    NotFoundException,
+    HttpException,
+    HttpStatus,
 } from '@nestjs/common';
 import { WalletService } from './wallet.service';
 import { JwtService } from '@nestjs/jwt';
 
 /**
- * 🎯 WalletController
- * Gère le solde virtuel de chaque utilisateur.
- * - GET /api/wallet              : obtenir le solde
- * - POST /api/wallet/faucet      : créditer soi-même (test)
- * - POST /api/wallet/admin/credit: admin crédite un autre utilisateur
+ * Routes Wallet
+ * - GET    /api/wallet
+ * - POST   /api/wallet/faucet
+ * - POST   /api/wallet/admin/credit
+ * - GET    /api/wallet/:userId
  */
 @Controller('api/wallet')
 export class WalletController {
@@ -24,58 +28,55 @@ export class WalletController {
         private readonly jwtService: JwtService,
     ) {}
 
-    /** 🔹 Extraire l'user depuis le JWT envoyé dans les headers */
+    /** 🔐 Extrait l'utilisateur depuis “Authorization: Bearer <token>” */
     private extractUser(headers: Record<string, string | undefined>) {
-        const token = headers.authorization?.replace('Bearer ', '');
+        const auth = headers['authorization'] as string | undefined;
+        const token = auth?.startsWith('Bearer ') ? auth.slice(7) : undefined;
+
         if (!token) throw new ForbiddenException('Token manquant');
 
         try {
-            const decoded = this.jwtService.verify(token);
-            return decoded; // { id, email, username, role, ... }
+            const decoded = this.jwtService.verify(token) as any; // { id? sub? username role ... }
+            const id = decoded.id || decoded.sub;
+            if (!id) throw new Error('id manquant dans le token');
+            return decoded;
         } catch {
             throw new ForbiddenException('Token invalide');
         }
     }
 
-    /** 🔹 Récupérer le solde de l’utilisateur connecté */
+    /** 👤 Solde utilisateur connecté (création auto) */
     @Get()
     async get(@Headers() headers: Record<string, string | undefined>) {
         const user = this.extractUser(headers);
-        const wallet = await this.svc.getBalance(user.id);
-        console.log("📤 Réponse envoyée au front:", wallet);
+        const userId = user.id || user.sub;
+        const wallet = await this.svc.getBalance(userId);
         return wallet;
     }
 
-
-
-    /** 🔹 Crédit test (faucet) — réservé pour debug/dev */
+    /** 🪙 Faucet (dev/test) — crédite le compte connecté */
     @Post('faucet')
     async faucet(
         @Headers() headers: Record<string, string | undefined>,
         @Body() body: { amount?: number },
     ) {
         const user = this.extractUser(headers);
-        const amountUnits = Number(body?.amount ?? 1_000_000);
+        const userId = user.id || user.sub;
 
+        const amountUnits = Number(body?.amount ?? 1_000_000);
         if (!Number.isFinite(amountUnits) || amountUnits <= 0) {
             throw new BadRequestException('Montant faucet invalide');
         }
 
         const amountCents = Math.floor(amountUnits * 100);
-        console.log(`💸 Faucet de ${amountUnits} TND pour ${user.username}`);
-        return this.svc.credit(user.id, amountCents, { source: 'faucet' });
+        return this.svc.credit(userId, amountCents, { source: 'faucet' });
     }
 
-    /** 🔹 Créditer un autre utilisateur (ADMIN uniquement) */
+    /** 👑 Admin: créditer un autre utilisateur */
     @Post('admin/credit')
     async adminCredit(
         @Headers() headers: Record<string, string | undefined>,
-        @Body()
-            body: {
-            targetUserId: string;
-            amount: number;
-            note?: string;
-        },
+        @Body() body: { targetUserId: string; amount: number; note?: string },
     ) {
         const admin = this.extractUser(headers);
         if (admin.role !== 'admin') {
@@ -87,32 +88,22 @@ export class WalletController {
             throw new BadRequestException('Données invalides pour crédit');
         }
 
-        console.log(
-            `🧑‍💼 Admin ${admin.username} crédite ${body.targetUserId} de ${body.amount} TND`,
-        );
-
         return this.svc.adminCredit(admin.role, body.targetUserId, amountCents, {
             source: 'admin-panel',
             note: body.note || 'Ajout manuel par admin',
-            adminId: admin.id,
+            adminId: admin.id || admin.sub,
         });
     }
+
+    /** 🔎 Lecture directe (outil/admin) */
     @Get(':userId')
     async getUserWallet(@Param('userId') userId: string) {
         try {
             const wallet = await this.svc.getBalance(userId);
-            if (!wallet) {
-                throw new NotFoundException(`Wallet introuvable pour userId: ${userId}`);
-            }
-            return {
-                userId: wallet.userId,
-                balanceCents: wallet.balanceCents,
-                currency: wallet.currency,
-            };
-        } catch (err) {
-            console.error("💥 Erreur getUserWallet:", err);
-            throw new HttpException(err.message || "Erreur serveur", HttpStatus.INTERNAL_SERVER_ERROR);
+            if (!wallet) throw new NotFoundException(`Wallet introuvable pour userId: ${userId}`);
+            return wallet;
+        } catch (err: any) {
+            throw new HttpException(err.message || 'Erreur serveur', HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
 }

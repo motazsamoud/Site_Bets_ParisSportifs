@@ -5,8 +5,6 @@ import { Bet } from './bet.schema';
 import { WalletService } from '../wallet/wallet.service';
 import { Selection } from './bet.schema';
 
-
-
 @Injectable()
 export class BetsService {
     constructor(
@@ -14,10 +12,10 @@ export class BetsService {
         private readonly wallet: WalletService,
     ) {}
 
-    /** Nettoie + valide les sélections (1 seule par fixture) */
+    /** 🧹 Nettoie + valide les sélections (une seule par match) */
     private normalizeSelections(raw: any[]): Selection[] {
         if (!Array.isArray(raw) || raw.length === 0) {
-            throw new BadRequestException('Aucune sélection');
+            throw new BadRequestException('Aucune sélection fournie');
         }
 
         const out: Selection[] = [];
@@ -33,10 +31,10 @@ export class BetsService {
                 throw new BadRequestException('Sélection invalide: champs manquants');
             }
             if (!Number.isFinite(priceNum) || priceNum < 1) {
-                throw new BadRequestException('Sélection invalide: price');
+                throw new BadRequestException('Sélection invalide: prix incorrect');
             }
 
-            // ✅ une seule sélection par match : on remplace la précédente si besoin
+            // ✅ empêche doublons par match
             if (seen.has(eventId)) {
                 const idx = out.findIndex((s) => s.eventId === eventId);
                 if (idx !== -1) out.splice(idx, 1);
@@ -62,18 +60,14 @@ export class BetsService {
         return out;
     }
 
-
-    /** Cote combinée */
+    /** 🔹 Calcul des cotes combinées */
     private computeCombinedOdds(selections: Selection[]) {
         const mul = selections.reduce((acc, s) => acc * (s.price || 1), 1);
         return Math.round(mul * 10000) / 10000;
     }
 
-    /** Place un pari : débit puis création du bet (sans transaction) */
-    async placeBet(
-        userId: string,
-        body: { stake: number; selections: any[] },
-    ) {
+    /** 🎯 Place un pari : débit wallet + création du bet */
+    async placeBet(userId: string, body: { stake: number; selections: any[] }) {
         const selections = this.normalizeSelections(body.selections);
 
         const stakeCents = Math.floor(Number(body.stake) * 100);
@@ -84,10 +78,10 @@ export class BetsService {
         const combinedOdds = this.computeCombinedOdds(selections);
         const potentialWinCents = Math.floor(stakeCents * combinedOdds);
 
-        // 1) Débit du wallet (signature à 2..3 args → pas de session)
+        // 💳 Débit du wallet
         await this.wallet.debitIfEnough(userId, stakeCents, { reason: 'bet_place' });
 
-        // 2) Création du pari
+        // 🧾 Création du pari
         const bet = await this.betModel.create({
             userId,
             selections,
@@ -98,7 +92,7 @@ export class BetsService {
             createdAt: new Date(),
         });
 
-        // 3) Retourne le solde à jour pour l’UI
+        // 💰 Retourne le solde à jour
         const { balanceCents, currency } = await this.wallet.getBalance(userId);
 
         return {
@@ -111,14 +105,10 @@ export class BetsService {
         };
     }
 
-    /** Liste des paris */
+    /** 🔹 Liste des paris d’un utilisateur */
     async listBets(userId: string) {
-        const rows = await this.betModel
-            .find({ userId })
-            .sort({ createdAt: -1 })
-            .lean();
+        const rows = await this.betModel.find({ userId }).sort({ createdAt: -1 }).lean();
 
-        // on normalise l’ID et on expose les champs attendus par le front
         return rows.map((r: any) => ({
             id: String(r._id),
             userId: r.userId,
@@ -130,60 +120,49 @@ export class BetsService {
             createdAt: r.createdAt,
         }));
     }
+
+    /** 🔹 Historique d’un utilisateur */
     async getUserHistory(userId: string) {
-        return this.betModel
-            .find({ userId })
-            .sort({ createdAt: -1 })
-            .lean()
-            .exec();
+        return this.betModel.find({ userId }).sort({ createdAt: -1 }).lean().exec();
     }
 
-
-    // bets.service.ts
-    // ✅ Version Mongoose (pas Prisma)
-    // ✅ Mise à jour Mongoose, compatible avec ton schéma actuel
-    // ✅ Mise à jour Mongoose + crédit automatique du gain si "won"
-    // ✅ updateBet sécurisé et historique
+    /** 🔄 Mise à jour d’un pari (résultat, statut, etc.) */
     async updateBet(id: string, data: any) {
         const existing = await this.betModel.findById(id);
-        if (!existing) throw new BadRequestException("Pari introuvable");
+        if (!existing) throw new BadRequestException('Pari introuvable');
 
-        // 🧱 Si déjà terminé (won/lost/void), on ne change plus rien
-        if (["won", "lost", "void"].includes(existing.status)) {
-            console.log(`⛔ Pari déjà finalisé (${existing.status}), mise à jour ignorée`);
+        if (['won', 'lost', 'void'].includes(existing.status)) {
+            console.log(`⛔ Pari déjà finalisé (${existing.status}), ignoré`);
             return existing;
         }
 
-        // 🔁 Met à jour uniquement les paris encore "pending"
         if (data.status) existing.status = data.status;
         if (data.selections) existing.selections = data.selections;
         (existing as any).updatedAt = new Date();
 
         await existing.save();
 
-        // 💰 Crédit automatique si "won"
-        if (existing.status === "won") {
+        if (existing.status === 'won') {
             await this.wallet.credit(existing.userId, existing.potentialWinCents, {
-                reason: "bet_win",
+                reason: 'bet_win',
                 metadata: { betId: String(existing._id) },
             });
         }
 
-        // 🧾 Archive du pari final (dans bets_history)
-        if (["won", "lost"].includes(existing.status)) {
+        if (['won', 'lost'].includes(existing.status)) {
             try {
                 await this.archiveBet(existing);
             } catch (err) {
-                console.error("❌ Erreur archive bet:", err);
+                console.error('❌ Erreur archive bet:', err);
             }
         }
 
         return existing;
     }
 
-    /** 🔹 Archive un pari finalisé */
+    /** 📦 Archive un pari finalisé */
     private async archiveBet(bet: any) {
-        const historyModel = this.betModel.db.model("bets_history", this.betModel.schema);
+        const historyModel = this.betModel.db.model('bets_history', this.betModel.schema);
         const doc = await historyModel.findOne({ betId: bet._id });
         if (doc) return; // déjà archivé
 
@@ -198,11 +177,6 @@ export class BetsService {
             archivedAt: new Date(),
         });
 
-        console.log(`📦 Pari archivé dans bets_history (${bet._id})`);
+        console.log(`📦 Pari archivé (${bet._id})`);
     }
-
-
-
-
-
 }

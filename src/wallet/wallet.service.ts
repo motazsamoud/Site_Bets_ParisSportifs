@@ -13,37 +13,23 @@ export class WalletService {
         @InjectModel(WalletTx.name) private readonly txModel: Model<WalletTx>,
     ) {}
 
-    /** 🔹 Récupère ou crée un wallet (utilisé lors du login) */
+    /** 🔹 Récupère ou crée un wallet pour l’utilisateur */
     async getOrCreate(userId: string) {
-        const id = userId.toString();
-        console.log(`🧩 Recherche wallet pour userId = ${id}`);
-
+        const id = String(userId);
         let wallet = await this.walletModel.findOne({ userId: id }).exec();
-        console.log("🔎 Résultat Mongo findOne:", wallet);
-
-        if (wallet) {
-            console.log(`💰 Wallet existant trouvé pour ${id}`);
-            return wallet;
+        if (!wallet) {
+            wallet = await this.walletModel.create({
+                userId: id,
+                balanceCents: 0,
+                currency: 'TND',
+            });
         }
-
-        console.log(`🪙 Aucun wallet trouvé → création d’un nouveau pour ${id}`);
-        wallet = await this.walletModel.create({
-            userId: id,
-            balanceCents: 0,
-            currency: 'TND',
-        });
-
         return wallet;
     }
 
-
-
-
-    /** 🔹 Récupère le solde actuel */
+    /** 🔹 Solde actuel (création auto si absent) */
     async getBalance(userId: string) {
-        console.log(`🔍 getBalance() appelé pour ${userId}`);
         const wallet = await this.getOrCreate(userId);
-        console.log("💳 Wallet trouvé:", wallet);
         return {
             userId,
             balanceCents: wallet.balanceCents,
@@ -51,8 +37,7 @@ export class WalletService {
         };
     }
 
-
-    /** 🔹 Créditer le compte (uniquement admin) */
+    /** 🔹 Crédit “admin” explicite */
     async adminCredit(adminRole: string, targetUserId: string, amountCents: number, meta?: TxMeta) {
         if (adminRole !== 'admin') throw new ForbiddenException('Seul un admin peut créditer un compte');
         if (!Number.isFinite(amountCents) || amountCents <= 0) throw new BadRequestException('Montant invalide');
@@ -70,11 +55,10 @@ export class WalletService {
             createdAt: new Date(),
         });
 
-        console.log(`✅ Admin a crédité ${amountCents / 100} ${wallet.currency} → ${targetUserId}`);
         return wallet;
     }
 
-    /** 🔹 Créditer le compte (usage interne auto) */
+    /** 🔹 Crédit standard */
     async credit(userId: string, amountCents: number, meta?: TxMeta) {
         if (!Number.isFinite(amountCents) || amountCents < 0) {
             throw new BadRequestException('Montant invalide');
@@ -100,15 +84,16 @@ export class WalletService {
         };
     }
 
-    /** 🔹 Débiter si solde suffisant */
+    /** 🔹 Débit si solde suffisant (création auto avant contrôle) */
     async debitIfEnough(userId: string, amountCents: number, meta?: TxMeta) {
-        if (!Number.isFinite(amountCents) || amountCents <= 0)
+        if (!Number.isFinite(amountCents) || amountCents <= 0) {
             throw new BadRequestException('Montant invalide');
+        }
 
-        const wallet = await this.walletModel.findOne({ userId });
-        if (!wallet) throw new BadRequestException('Wallet introuvable');
-        if (wallet.balanceCents < amountCents)
+        const wallet = await this.getOrCreate(userId); // 🔴 plus de “Wallet introuvable”
+        if (wallet.balanceCents < amountCents) {
             throw new BadRequestException('Solde insuffisant');
+        }
 
         wallet.balanceCents -= amountCents;
         await wallet.save();
