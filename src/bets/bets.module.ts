@@ -10,7 +10,11 @@ import {JwtModule} from "@nestjs/jwt";
     imports: [
         WalletModule,
         MongooseModule.forFeature([{ name: Bet.name, schema: BetSchema }]),
-        JwtModule.register({}),
+        JwtModule.register({
+            secret: process.env.JWT_SECRET ||  'your-secret-key',  // Use a more secure secret in production
+            signOptions: { expiresIn: '1h' },
+            // Set token expiry (e.g., 1 hour)
+        }),
     ],
     providers: [BetsService],
     controllers: [BetsController],
