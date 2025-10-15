@@ -68,8 +68,8 @@ export class WalletController {
             throw new BadRequestException('Montant faucet invalide');
         }
 
-        const amountCents = Math.floor(amountUnits * 100);
-        return this.svc.credit(userId, amountCents, { source: 'faucet' });
+        const amount = Math.floor(amountUnits * 100);
+        return this.svc.credit(userId, amount, { source: 'faucet' });
     }
 
     /** 👑 Admin: créditer un autre utilisateur */
@@ -83,12 +83,12 @@ export class WalletController {
             throw new ForbiddenException('Accès refusé : réservé aux administrateurs');
         }
 
-        const amountCents = Math.floor(Number(body.amount) * 100);
-        if (!body.targetUserId || !Number.isFinite(amountCents) || amountCents <= 0) {
+        const amount = Math.floor(Number(body.amount) * 100);
+        if (!body.targetUserId || !Number.isFinite(amount) || amount <= 0) {
             throw new BadRequestException('Données invalides pour crédit');
         }
 
-        return this.svc.adminCredit(admin.role, body.targetUserId, amountCents, {
+        return this.svc.adminCredit(admin.role, body.targetUserId, amount, {
             source: 'admin-panel',
             note: body.note || 'Ajout manuel par admin',
             adminId: admin.id || admin.sub,

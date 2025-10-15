@@ -7,8 +7,8 @@ type TxType = 'credit' | 'debit' | 'bet_place' | 'bet_settle';
 export class WalletTx extends Document {
     @Prop({ required: true, index: true }) userId!: string;
     @Prop({ required: true }) type!: TxType;
-    @Prop({ required: true }) amountCents!: number;
-    @Prop({ required: true }) balanceAfterCents!: number;
+    @Prop({ required: true }) amount!: number;
+    @Prop({ required: true }) balanceAfter!: number;
     @Prop({ type: Object }) meta?: Record<string, any>;
 }
 export const WalletTxSchema = SchemaFactory.createForClass(WalletTx);

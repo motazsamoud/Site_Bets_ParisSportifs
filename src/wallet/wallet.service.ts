@@ -53,7 +53,7 @@ export class WalletService {
             userId: targetUserId,
             type: 'credit',
             amount,
-            balanceAfterCents: wallet.balanceCents,
+            balanceAfter: wallet.balanceCents,
             meta,
             createdAt: new Date(),
         });
@@ -76,7 +76,7 @@ export class WalletService {
             userId,
             type: 'credit',
             amount,
-            balanceAfterCents: wallet.balanceCents,
+            balanceAfter: wallet.balanceCents,
             meta,
             createdAt: new Date(),
         });
@@ -107,7 +107,7 @@ export class WalletService {
             userId,
             type: 'debit',
             amount,
-            balanceAfterCents: wallet.balanceCents,
+            balanceAfter: wallet.balanceCents,
             meta,
             createdAt: new Date(),
         });
