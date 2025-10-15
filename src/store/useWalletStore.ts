@@ -9,6 +9,7 @@ type WalletStore = {
   fetchBalance: () => Promise<void>;
   faucet: (amount?: number) => Promise<void>;
   setBalance: (amount: number) => void;
+  notifyUpdate: () => void; // 👈 nouveau
 };
 
 const BASE =
@@ -27,12 +28,21 @@ function buildHeaders(json = true): HeadersInit {
   return h;
 }
 
-export const useWalletStore = create<WalletStore>((set) => ({
+export const useWalletStore = create<WalletStore>((set, get) => ({
   balance: null,
   currency: "TND",
   loading: false,
 
-  setBalance: (amount) => set({ balance: amount }),
+  notifyUpdate: () => {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("wallet-updated"));
+    }
+  },
+
+  setBalance: (amount) => {
+    set({ balance: amount });
+    get().notifyUpdate(); // 👈 émet un événement global
+  },
 
   /** 🔹 Récupère le solde (JWT requis côté backend) */
   fetchBalance: async () => {
@@ -41,7 +51,7 @@ export const useWalletStore = create<WalletStore>((set) => ({
 
       const res = await fetch(`${BASE}/api/wallet`, {
         method: "GET",
-        headers: buildHeaders(false), // pas besoin de content-type en GET
+        headers: buildHeaders(false),
         cache: "no-store",
       });
 
@@ -56,6 +66,7 @@ export const useWalletStore = create<WalletStore>((set) => ({
         currency: data.currency || "TND",
         loading: false,
       });
+      get().notifyUpdate(); // 👈 notifie le header
     } catch (err) {
       console.error("❌ [Wallet] fetchBalance:", err);
       set({ loading: false });
@@ -81,6 +92,7 @@ export const useWalletStore = create<WalletStore>((set) => ({
         balance: (data.balanceCents ?? 0) / 100,
         currency: data.currency || "TND",
       });
+      get().notifyUpdate(); // 👈 notifie les listeners
     } catch (err) {
       console.error("❌ [Wallet] faucet:", err);
     }

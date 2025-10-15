@@ -27,6 +27,8 @@ import {
   AlarmClock,
   Volleyball, // ✅ au lieu de BallFootball
 } from "lucide-react";
+import { useUserStore } from "@/store/useUserStore"; // ✅ Import du store user
+
 
 
 /* ========================= Config ========================= */
@@ -183,13 +185,16 @@ function SkeletonRow() {
 /* ========================= Fetch helpers ========================= */
 
 // charge l’historique pari
+// charge l’historique pari pour le user connecté
 async function fetchHistory(userId: string): Promise<Bet[]> {
+  if (!userId) throw new Error("Utilisateur non connecté");
   const res = await fetch(`${API_BASE}/api/bets/history/${userId}`, {
     cache: "no-store",
   });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
+
 // ✅ Met à jour un pari terminé dans la base (backend)
 async function saveBetToBackend(bet: Bet) {
   try {
@@ -251,54 +256,63 @@ export default function BetHistoryPage({ userId = "demo-user" }: { userId?: stri
   const currency = "USD";
 
   // refresh
-  async function load() {
+   async function load() {
     try {
       setError(null);
       setRows(null);
-      const data = await fetchHistory(userId ?? "demo-user");
+
+      // 🧠 on récupère le user connecté depuis Zustand
+      const storedUser = useUserStore.getState().user;
+      if (!storedUser?.id) {
+        console.warn("⚠️ Aucun utilisateur connecté, pas d'historique à charger.");
+        setRows([]);
+        return;
+      }
+
+      console.log(`📥 Chargement historique pour userId = ${storedUser.id}`);
+      const data = await fetchHistory(storedUser.id);
+
       const allMatches = await fetchAllMatches();
       data.forEach((bet) => {
-bet.selections.forEach((sel) => {
-const match = allMatches.find((m: any) => {
-  const sameTeams =
-  m.home?.toLowerCase().includes(sel.home?.toLowerCase() || "") &&
-  m.away?.toLowerCase().includes(sel.away?.toLowerCase() || "");
-return sameTeams || String(m.id) === String(sel.fixtureId);
- });
- if (match?.date) {
-  sel.kickoffAt = match.date; // 🕓 ajoute la date du match
- }
-});
+        bet.selections.forEach((sel) => {
+          const match = allMatches.find((m: any) => {
+            const sameTeams =
+              m.home?.toLowerCase().includes(sel.home?.toLowerCase() || "") &&
+              m.away?.toLowerCase().includes(sel.away?.toLowerCase() || "");
+            return sameTeams || String(m.id) === String(sel.fixtureId);
+          });
+          if (match?.date) {
+            sel.kickoffAt = match.date;
+          }
+        });
       });
-      // si pas de status par sélection, on simule (démo)
-     const normalized: Bet[] = data.map((b) => {
-  // 🚫 Ne pas recalculer les paris déjà finalisés
-  if (["won", "lost", "void"].includes(b.status)) {
-    return b; // laisse tel quel
-  }
-  const sel = (b.selections || []).map((s) => ({
-    ...s,
-    status: evaluateSelection(s),
-  }));
-  const gl = (b.status ?? computeGlobalStatus(sel)) as BetStatus;
-  return { ...b, selections: sel, status: gl, currency: b.currency ?? currency };
-});
 
-      
+      // recalcul si besoin
+      const normalized: Bet[] = data.map((b) => {
+        if (["won", "lost", "void"].includes(b.status)) return b;
+        const sel = (b.selections || []).map((s) => ({
+          ...s,
+          status: evaluateSelection(s),
+        }));
+        const gl = (b.status ?? computeGlobalStatus(sel)) as BetStatus;
+        return { ...b, selections: sel, status: gl, currency: b.currency ?? "TND" };
+      });
+
       setRows(normalized);
     } catch (e: any) {
+      console.error("❌ Erreur chargement historique :", e);
       setError(e?.message ?? "Erreur de chargement");
       setRows([]);
     }
   }
 
-  useEffect(() => {
-    load();
-      
 
-   
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
+    useEffect(() => {
+    const { user } = useUserStore.getState();
+    if (user?.id) load();
+    else setRows([]);
+  }, [useUserStore.getState().user]);
+
   // 🔁 Met à jour immédiatement les scores terminés au chargement initial
 useEffect(() => {
   if (rows && rows.length > 0) {
