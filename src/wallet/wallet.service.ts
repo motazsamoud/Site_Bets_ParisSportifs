@@ -37,11 +37,14 @@ export class WalletService {
         };
     }
 
-    /** 🔹 Crédit “admin” explicite */
-    async adminCredit(adminRole: string, targetUserId: string, amountCents: number, meta?: TxMeta) {
-        if (adminRole !== 'admin') throw new ForbiddenException('Seul un admin peut créditer un compte');
-        if (!Number.isFinite(amountCents) || amountCents <= 0) throw new BadRequestException('Montant invalide');
+    /** 🔹 Crédit “admin” explicite — montant reçu en TND */
+    async adminCredit(adminRole: string, targetUserId: string, amountTND: number, meta?: TxMeta) {
+        if (adminRole !== 'admin')
+            throw new ForbiddenException('Seul un admin peut créditer un compte');
+        if (!Number.isFinite(amountTND) || amountTND <= 0)
+            throw new BadRequestException('Montant invalide');
 
+        const amountCents = Math.floor(amountTND * 100);
         const wallet = await this.getOrCreate(targetUserId);
         wallet.balanceCents += amountCents;
         await wallet.save();
@@ -58,12 +61,13 @@ export class WalletService {
         return wallet;
     }
 
-    /** 🔹 Crédit standard */
-    async credit(userId: string, amountCents: number, meta?: TxMeta) {
-        if (!Number.isFinite(amountCents) || amountCents < 0) {
+    /** 🔹 Crédit standard — montant reçu en TND */
+    async credit(userId: string, amountTND: number, meta?: TxMeta) {
+        if (!Number.isFinite(amountTND) || amountTND <= 0) {
             throw new BadRequestException('Montant invalide');
         }
 
+        const amountCents = Math.floor(amountTND * 100);
         const wallet = await this.getOrCreate(userId);
         wallet.balanceCents += amountCents;
         await wallet.save();
@@ -84,13 +88,14 @@ export class WalletService {
         };
     }
 
-    /** 🔹 Débit si solde suffisant (création auto avant contrôle) */
-    async debitIfEnough(userId: string, amountCents: number, meta?: TxMeta) {
-        if (!Number.isFinite(amountCents) || amountCents <= 0) {
+    /** 🔹 Débit si solde suffisant — montant reçu en TND */
+    async debitIfEnough(userId: string, amountTND: number, meta?: TxMeta) {
+        if (!Number.isFinite(amountTND) || amountTND <= 0) {
             throw new BadRequestException('Montant invalide');
         }
 
-        const wallet = await this.getOrCreate(userId); // 🔴 plus de “Wallet introuvable”
+        const amountCents = Math.floor(amountTND * 100);
+        const wallet = await this.getOrCreate(userId);
         if (wallet.balanceCents < amountCents) {
             throw new BadRequestException('Solde insuffisant');
         }

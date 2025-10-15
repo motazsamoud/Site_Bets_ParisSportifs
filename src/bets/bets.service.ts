@@ -70,23 +70,23 @@ export class BetsService {
     async placeBet(userId: string, body: { stake: number; selections: any[] }) {
         const selections = this.normalizeSelections(body.selections);
 
-        const stakeCents = Math.floor(Number(body.stake) * 100);
-        if (!Number.isFinite(stakeCents) || stakeCents <= 0) {
+        const stakeTND = Number(body.stake);
+        if (!Number.isFinite(stakeTND) || stakeTND <= 0) {
             throw new BadRequestException('Stake invalide');
         }
 
         const combinedOdds = this.computeCombinedOdds(selections);
-        const potentialWinCents = Math.floor(stakeCents * combinedOdds);
+        const potentialWinTND = stakeTND * combinedOdds;
 
-        // 💳 Débit du wallet
-        await this.wallet.debitIfEnough(userId, stakeCents, { reason: 'bet_place' });
+        // 💳 Débit du wallet en TND
+        await this.wallet.debitIfEnough(userId, stakeTND, { reason: 'bet_place' });
 
-        // 🧾 Création du pari
+        // 🧾 Création du pari (stocké en centimes)
         const bet = await this.betModel.create({
             userId,
             selections,
-            stakeCents,
-            potentialWinCents,
+            stakeCents: Math.floor(stakeTND * 100),
+            potentialWinCents: Math.floor(potentialWinTND * 100),
             combinedOdds,
             status: 'pending',
             createdAt: new Date(),
@@ -98,8 +98,8 @@ export class BetsService {
         return {
             betId: String(bet._id),
             combinedOdds,
-            stakeCents,
-            potentialWinCents,
+            stakeCents: Math.floor(stakeTND * 100),
+            potentialWinCents: Math.floor(potentialWinTND * 100),
             currency,
             balanceCents,
         };
@@ -143,7 +143,9 @@ export class BetsService {
         await existing.save();
 
         if (existing.status === 'won') {
-            await this.wallet.credit(existing.userId, existing.potentialWinCents, {
+            // Crédit en TND mais montant attendu en centimes → conversion
+            const winTND = existing.potentialWinCents / 100;
+            await this.wallet.credit(existing.userId, winTND, {
                 reason: 'bet_win',
                 metadata: { betId: String(existing._id) },
             });
