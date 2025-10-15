@@ -67,6 +67,7 @@ export class BetsService {
     }
 
     /** 🎯 Place un pari : débit wallet + création du bet */
+    /** 🎯 Place un pari : débit wallet + création du bet */
     async placeBet(userId: string, body: { stake: number; selections: any[] }) {
         const selections = this.normalizeSelections(body.selections);
 
@@ -78,10 +79,10 @@ export class BetsService {
         const combinedOdds = this.computeCombinedOdds(selections);
         const potentialWinTND = stakeTND * combinedOdds;
 
-        // 💳 Débit du wallet en TND
-        await this.wallet.debitIfEnough(userId, potentialWinTND, { reason: 'bet_place_total' });
+        // 💳 Corrigé : on débite seulement la mise
+        await this.wallet.debitIfEnough(userId, stakeTND, { reason: 'bet_place' });
 
-        // 🧾 Création du pari (stocké en centimes)
+        // 🧾 Enregistrement du pari
         const bet = await this.betModel.create({
             userId,
             selections,
@@ -92,7 +93,7 @@ export class BetsService {
             createdAt: new Date(),
         });
 
-        // 💰 Retourne le solde à jour
+        // 💰 Retourne le solde mis à jour
         const { balanceCents, currency } = await this.wallet.getBalance(userId);
 
         return {
@@ -104,6 +105,7 @@ export class BetsService {
             balanceCents,
         };
     }
+
 
     /** 🔹 Liste des paris d’un utilisateur */
     async listBets(userId: string) {
