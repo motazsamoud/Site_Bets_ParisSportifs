@@ -457,7 +457,7 @@ export default function EventPage({
       {/* 🧾 Panneau feuille des paris */}
       {showSlip && (
 <div className="fixed bottom-20 right-6 z-50">
-    <BetSlip userId="demo-user" />          <h3 className="text-lg font-semibold mb-3 flex items-center justify-between">
+    <BetSlip  />          <h3 className="text-lg font-semibold mb-3 flex items-center justify-between">
            
           </h3>
 
