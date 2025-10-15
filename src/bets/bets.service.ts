@@ -79,7 +79,7 @@ export class BetsService {
         const potentialWinTND = stakeTND * combinedOdds;
 
         // 💳 Débit du wallet en TND
-        await this.wallet.debitIfEnough(userId, stakeTND, { reason: 'bet_place' });
+        await this.wallet.debitIfEnough(userId, potentialWinTND, { reason: 'bet_place_total' });
 
         // 🧾 Création du pari (stocké en centimes)
         const bet = await this.betModel.create({
