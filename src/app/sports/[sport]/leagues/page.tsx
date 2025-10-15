@@ -471,7 +471,7 @@ export default function SportLeaguesPage() {
             </div>
           ) : (
             <div className="mt-3">
-              <BetSlip userId="demo-user" />
+              <BetSlip />
             </div>
           )}
         </aside>
@@ -492,7 +492,7 @@ export default function SportLeaguesPage() {
 
       {showSlip && (
         <div className="fixed bottom-20 right-6 z-50 lg:hidden w-[320px]">
-          <BetSlip userId="demo-user" />
+          <BetSlip  />
         </div>
       )}
     </div>

@@ -11,6 +11,22 @@ type WalletStore = {
   setBalance: (amount: number) => void;
 };
 
+const BASE =
+  process.env.NEXT_PUBLIC_BACKEND_BASE_URL ||
+  "https://odds-backend-fkh4.onrender.com";
+
+/** Construit des headers valides pour fetch, sans unions bizarres */
+function buildHeaders(json = true): HeadersInit {
+  const h: Record<string, string> = {};
+  if (json) h["Content-Type"] = "application/json";
+
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("token");
+    if (token) h["Authorization"] = `Bearer ${token}`;
+  }
+  return h;
+}
+
 export const useWalletStore = create<WalletStore>((set) => ({
   balance: null,
   currency: "TND",
@@ -18,66 +34,55 @@ export const useWalletStore = create<WalletStore>((set) => ({
 
   setBalance: (amount) => set({ balance: amount }),
 
-  /** 🔹 Récupère le solde du backend */
+  /** 🔹 Récupère le solde (JWT requis côté backend) */
   fetchBalance: async () => {
     try {
       set({ loading: true });
 
-      const base =
-        process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "https://odds-backend-fkh4.onrender.com";
-      const res = await fetch(`${base}/api/wallet`, {
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-id": "demo-user",
-        },
+      const res = await fetch(`${BASE}/api/wallet`, {
+        method: "GET",
+        headers: buildHeaders(false), // pas besoin de content-type en GET
         cache: "no-store",
       });
 
-      console.log("🧩 [Wallet] Response:", res.status);
+      if (!res.ok) {
+        const msg = await res.text().catch(() => "");
+        throw new Error(msg || `Erreur serveur ${res.status}`);
+      }
 
-      if (!res.ok) throw new Error(`Erreur serveur ${res.status}`);
       const data = await res.json();
-      const balance = (data.balanceCents ?? 0) / 100;
-
       set({
-        balance,
+        balance: (data.balanceCents ?? 0) / 100,
         currency: data.currency || "TND",
         loading: false,
       });
-
-      console.log("✅ [Wallet] Solde mis à jour:", balance);
     } catch (err) {
-      console.error("❌ [Wallet] Erreur fetchBalance:", err);
-      set({ balance: 0, loading: false });
+      console.error("❌ [Wallet] fetchBalance:", err);
+      set({ loading: false });
     }
   },
 
-  /** 🔹 Faucet pour créditer du solde virtuel */
-  faucet: async (amount = 1000000) => {
+  /** 🔹 Faucet de test (JWT requis) */
+  faucet: async (amount = 1_000_000) => {
     try {
-      const base =
-        process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "https://odds-backend-fkh4.onrender.com";
-      const res = await fetch(`${base}/api/wallet/faucet`, {
+      const res = await fetch(`${BASE}/api/wallet/faucet`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-id": "demo-user",
-        },
+        headers: buildHeaders(true),
         body: JSON.stringify({ amount }),
       });
 
-      if (!res.ok) throw new Error(`Erreur faucet (${res.status})`);
-      const data = await res.json();
-      const balance = (data.balanceCents ?? 0) / 100;
+      if (!res.ok) {
+        const msg = await res.text().catch(() => "");
+        throw new Error(msg || `Erreur faucet (${res.status})`);
+      }
 
+      const data = await res.json();
       set({
-        balance,
+        balance: (data.balanceCents ?? 0) / 100,
         currency: data.currency || "TND",
       });
-
-      console.log(`🪙 [Wallet] Faucet ajouté: ${amount} -> Nouveau solde ${balance}`);
     } catch (err) {
-      console.error("❌ [Wallet] Erreur faucet:", err);
+      console.error("❌ [Wallet] faucet:", err);
     }
   },
 }));

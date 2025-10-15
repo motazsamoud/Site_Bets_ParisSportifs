@@ -2,18 +2,27 @@
 
 import { useBetStore } from "@/store/useBetStore";
 import { useWalletStore } from "@/store/useWalletStore";
-import { useState, useMemo } from "react";
+import { useUserStore } from "@/store/useUserStore";
+import { useState, useMemo, useEffect } from "react";
 
 /**
- * Composant Feuille de pari
- * Compatible local + Render + Vercel
+ * 🎫 Feuille de pari (BetSlip)
+ * ➜ Récupère automatiquement l'utilisateur connecté (JWT)
+ * ➜ Envoie le pari via Authorization: Bearer <token>
+ * ➜ Met à jour le solde via wallet après succès
  */
-export default function BetSlip({ userId }: { userId?: string }) {
+export default function BetSlip() {
   const { slip, removeBet, clearSlip } = useBetStore();
   const { fetchBalance } = useWalletStore();
+  const { user, token, loadFromStorage } = useUserStore();
 
   const [stake, setStake] = useState<number>(0);
   const [loading, setLoading] = useState(false);
+
+  // ✅ Recharger les infos utilisateur à chaque montage
+  useEffect(() => {
+    loadFromStorage();
+  }, [loadFromStorage]);
 
   // ✅ Calcul des cotes totales
   const totalOdds = useMemo(
@@ -24,56 +33,60 @@ export default function BetSlip({ userId }: { userId?: string }) {
   // ✅ Calcul du revenu potentiel
   const potentialWin = stake > 0 ? stake * totalOdds : 0;
 
-  // ✅ Détermination automatique du backend (local / prod)
+  // ✅ Base API
   const API_BASE =
     process.env.NEXT_PUBLIC_BACKEND_BASE_URL ||
-    (typeof window !== "undefined" &&
-    window.location.hostname.includes("localhost"))
-      ? "http://192.168.56.1:3000"
-      : "https://odds-backend-fkh4.onrender.com";
+    "https://odds-backend-fkh4.onrender.com";
 
+  /** 🔹 Placement du pari */
   async function handlePlace() {
+    if (!user?.id || !token) {
+      return alert("Veuillez vous connecter avant de placer un pari !");
+    }
     if (slip.length === 0) return alert("Aucun pari sélectionné !");
     if (stake <= 0) return alert("Veuillez entrer une mise valide !");
     setLoading(true);
 
     try {
+      const body = {
+        stake,
+        selections: slip.map((b) => ({
+          eventId: b.fixtureId,
+          outcomeKey:
+            b.selection === "1"
+              ? "home"
+              : b.selection === "X"
+              ? "draw"
+              : b.selection === "2"
+              ? "away"
+              : b.selection.toLowerCase(),
+          market: b.market,
+          price: Number(b.odds),
+          label: `${b.selection} @ ${b.odds}`,
+          home: b.event?.split(" vs ")[0] || "",
+          away: b.event?.split(" vs ")[1] || "",
+        })),
+      };
+
+      console.log("🎯 Envoi du pari :", body);
+
       const res = await fetch(`${API_BASE}/api/bets`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-user-id": userId || "demo-user",
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          stake,
-          selections: slip.map((b) => ({
-            eventId: b.fixtureId,
-            outcomeKey:
-              b.selection === "1"
-                ? "home"
-                : b.selection === "X"
-                ? "draw"
-                : b.selection === "2"
-                ? "away"
-                : b.selection.toLowerCase(),
-            market: b.market,
-            price: Number(b.odds),
-            label: `${b.selection} @ ${b.odds}`,
-            home: b.event?.split(" vs ")[0] || "",
-            away: b.event?.split(" vs ")[1] || "",
-          })),
-        }),
+        body: JSON.stringify(body),
       });
 
-      // 🔎 Vérifie le statut HTTP
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.message || "Erreur serveur inconnue");
+        throw new Error(errData.message || `Erreur serveur (${res.status})`);
       }
 
       const data = await res.json();
       alert(
-        `✅ Pari placé ! Gain possible : ${(data.potentialWinCents / 100).toFixed(2)} ${
+        `✅ Pari placé avec succès ! Gain potentiel : ${(data.potentialWinCents / 100).toFixed(2)} ${
           data.currency || "TND"
         }`
       );
@@ -81,8 +94,8 @@ export default function BetSlip({ userId }: { userId?: string }) {
       clearSlip();
       await fetchBalance();
     } catch (err: any) {
-      console.error("❌ Erreur pari:", err);
-      alert(`Erreur: ${err.message || "Impossible de communiquer avec le serveur"}`);
+      console.error("❌ Erreur lors du placement du pari:", err);
+      alert(err.message || "Erreur lors de la communication avec le serveur.");
     } finally {
       setLoading(false);
     }
