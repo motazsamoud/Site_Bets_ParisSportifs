@@ -44,15 +44,15 @@ export class WalletService {
         if (!Number.isFinite(amountTND) || amountTND <= 0)
             throw new BadRequestException('Montant invalide');
 
-        const amountCents = Math.floor(amountTND * 100);
+        const amount = Math.floor(amountTND);
         const wallet = await this.getOrCreate(targetUserId);
-        wallet.balanceCents += amountCents;
+        wallet.balanceCents += amount;
         await wallet.save();
 
         await this.txModel.create({
             userId: targetUserId,
             type: 'credit',
-            amountCents,
+            amount,
             balanceAfterCents: wallet.balanceCents,
             meta,
             createdAt: new Date(),
@@ -67,15 +67,15 @@ export class WalletService {
             throw new BadRequestException('Montant invalide');
         }
 
-        const amountCents = Math.floor(amountTND * 100);
+        const amount = Math.floor(amountTND * 100);
         const wallet = await this.getOrCreate(userId);
-        wallet.balanceCents += amountCents;
+        wallet.balanceCents += amount;
         await wallet.save();
 
         await this.txModel.create({
             userId,
             type: 'credit',
-            amountCents,
+            amount,
             balanceAfterCents: wallet.balanceCents,
             meta,
             createdAt: new Date(),
@@ -94,19 +94,19 @@ export class WalletService {
             throw new BadRequestException('Montant invalide');
         }
 
-        const amountCents = Math.floor(amountTND * 100);
+        const amount = Math.floor(amountTND);
         const wallet = await this.getOrCreate(userId);
-        if (wallet.balanceCents < amountCents) {
+        if (wallet.balanceCents < amount) {
             throw new BadRequestException('Solde insuffisant');
         }
 
-        wallet.balanceCents -= amountCents;
+        wallet.balanceCents -= amount;
         await wallet.save();
 
         await this.txModel.create({
             userId,
             type: 'debit',
-            amountCents,
+            amount,
             balanceAfterCents: wallet.balanceCents,
             meta,
             createdAt: new Date(),
