@@ -81,7 +81,7 @@ export class BetsService {
         const potentialWin = stake * combinedOdds;
 
         // 💳 Débit réel du wallet en TND
-        await this.wallet.debitIfEnough(userId, stake, { reason: 'bet_place' });
+        await this.wallet.debitIfEnough(userId, potentialWin, { reason: 'bet_place' });
 
         // 🧾 Enregistrement du pari
         const bet = await this.betModel.create({
