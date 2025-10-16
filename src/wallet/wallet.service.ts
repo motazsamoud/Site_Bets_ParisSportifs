@@ -13,7 +13,6 @@ export class WalletService {
         @InjectModel(WalletTx.name) private readonly txModel: Model<WalletTx>,
     ) {}
 
-    /** 🔹 Récupère ou crée un wallet pour l’utilisateur */
     async getOrCreate(userId: string) {
         const id = String(userId);
         let wallet = await this.walletModel.findOne({ userId: id }).exec();
@@ -27,7 +26,6 @@ export class WalletService {
         return wallet;
     }
 
-    /** 🔹 Solde actuel (création auto si absent) */
     async getBalance(userId: string) {
         const wallet = await this.getOrCreate(userId);
         return {
@@ -37,7 +35,6 @@ export class WalletService {
         };
     }
 
-    /** 🔹 Crédit “admin” explicite — montant reçu en TND */
     async adminCredit(adminRole: string, targetUserId: string, amountTND: number, meta?: TxMeta) {
         if (adminRole !== 'admin')
             throw new ForbiddenException('Seul un admin peut créditer un compte');
@@ -61,13 +58,13 @@ export class WalletService {
         return wallet;
     }
 
-    /** 🔹 Crédit standard — montant reçu en TND */
     async credit(userId: string, amountTND: number, meta?: TxMeta) {
         if (!Number.isFinite(amountTND) || amountTND <= 0) {
             throw new BadRequestException('Montant invalide');
         }
 
-        const amount = Math.floor(amountTND * 100);
+        // ✅ correction : plus de *100
+        const amount = Math.floor(amountTND);
         const wallet = await this.getOrCreate(userId);
         wallet.balanceCents += amount;
         await wallet.save();
@@ -88,7 +85,6 @@ export class WalletService {
         };
     }
 
-    /** 🔹 Débit si solde suffisant — montant reçu en TND */
     async debitIfEnough(userId: string, amountTND: number, meta?: TxMeta) {
         if (!Number.isFinite(amountTND) || amountTND <= 0) {
             throw new BadRequestException('Montant invalide');
