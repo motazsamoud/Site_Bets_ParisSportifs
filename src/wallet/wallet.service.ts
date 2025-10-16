@@ -80,7 +80,7 @@ export class WalletService {
 
         return {
             userId,
-            balanceCents: wallet.balanceCents,
+            balanceCents: wallet.balanceCents / 100,
             currency: wallet.currency,
         };
     }
@@ -110,7 +110,7 @@ export class WalletService {
 
         return {
             userId,
-            balanceCents: wallet.balanceCents,
+            balanceCents: wallet.balanceCents / 100,
             currency: wallet.currency,
         };
     }
