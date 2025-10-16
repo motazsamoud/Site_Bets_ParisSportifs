@@ -20,39 +20,40 @@ export class WalletService {
         if (!wallet) {
             wallet = await this.walletModel.create({
                 userId: id,
-                balance: 0,
+                balanceCents: 0,
                 currency: 'TND',
             });
         }
         return wallet;
     }
 
-    /** 🔹 Solde actuel */
+    /** 🔹 Solde actuel (création auto si absent) */
     async getBalance(userId: string) {
         const wallet = await this.getOrCreate(userId);
         return {
             userId,
-            balance: wallet.balance,
+            balanceCents: wallet.balanceCents,
             currency: wallet.currency,
         };
     }
 
-    /** 🔹 Crédit “admin” explicite — montant en TND */
-    async adminCredit(adminRole: string, targetUserId: string, amount: number, meta?: TxMeta) {
+    /** 🔹 Crédit “admin” explicite — montant reçu en TND */
+    async adminCredit(adminRole: string, targetUserId: string, amountTND: number, meta?: TxMeta) {
         if (adminRole !== 'admin')
             throw new ForbiddenException('Seul un admin peut créditer un compte');
-        if (!Number.isFinite(amount) || amount <= 0)
+        if (!Number.isFinite(amountTND) || amountTND <= 0)
             throw new BadRequestException('Montant invalide');
 
+        const amount = Math.floor(amountTND);
         const wallet = await this.getOrCreate(targetUserId);
-        wallet.balance += amount;
+        wallet.balanceCents += amount;
         await wallet.save();
 
         await this.txModel.create({
             userId: targetUserId,
             type: 'credit',
             amount,
-            balanceAfter: wallet.balance,
+            balanceAfter: wallet.balanceCents,
             meta,
             createdAt: new Date(),
         });
@@ -61,57 +62,59 @@ export class WalletService {
     }
 
     /** 🔹 Crédit standard — montant reçu en TND */
-    async credit(userId: string, amount: number, meta?: TxMeta) {
-        if (!Number.isFinite(amount) || amount <= 0) {
+    async credit(userId: string, amountTND: number, meta?: TxMeta) {
+        if (!Number.isFinite(amountTND) || amountTND <= 0) {
             throw new BadRequestException('Montant invalide');
         }
 
+        const amount = Math.floor(amountTND * 100);
         const wallet = await this.getOrCreate(userId);
-        wallet.balance += amount;
+        wallet.balanceCents += amount;
         await wallet.save();
 
         await this.txModel.create({
             userId,
             type: 'credit',
             amount,
-            balanceAfter: wallet.balance,
+            balanceAfter: wallet.balanceCents,
             meta,
             createdAt: new Date(),
         });
 
         return {
             userId,
-            balance: wallet.balance,
+            balanceCents: wallet.balanceCents,
             currency: wallet.currency,
         };
     }
 
-    /** 🔹 Débit si solde suffisant — montant en TND */
-    async debitIfEnough(userId: string, amount: number, meta?: TxMeta) {
-        if (!Number.isFinite(amount) || amount <= 0) {
+    /** 🔹 Débit si solde suffisant — montant reçu en TND */
+    async debitIfEnough(userId: string, amountTND: number, meta?: TxMeta) {
+        if (!Number.isFinite(amountTND) || amountTND <= 0) {
             throw new BadRequestException('Montant invalide');
         }
 
+        const amount = Math.floor(amountTND);
         const wallet = await this.getOrCreate(userId);
-        if (wallet.balance < amount) {
+        if (wallet.balanceCents < amount) {
             throw new BadRequestException('Solde insuffisant');
         }
 
-        wallet.balance -= amount;
+        wallet.balanceCents -= amount;
         await wallet.save();
 
         await this.txModel.create({
             userId,
             type: 'debit',
             amount,
-            balanceAfter: wallet.balance,
+            balanceAfter: wallet.balanceCents,
             meta,
             createdAt: new Date(),
         });
 
         return {
             userId,
-            balance: wallet.balance,
+            balanceCents: wallet.balanceCents,
             currency: wallet.currency,
         };
     }

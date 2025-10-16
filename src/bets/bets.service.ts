@@ -95,7 +95,7 @@ export class BetsService {
         });
 
         // 💰 Solde à jour
-        const { balance, currency } = await this.wallet.getBalance(userId);
+        const { balanceCents, currency } = await this.wallet.getBalance(userId);
 
         return {
             betId: String(bet._id),
@@ -103,7 +103,7 @@ export class BetsService {
             stake,
             potentialWin,
             currency,
-            balance,
+            balanceCents,
         };
     }
 
