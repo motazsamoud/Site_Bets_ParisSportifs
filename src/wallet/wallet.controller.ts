@@ -68,7 +68,7 @@ export class WalletController {
             throw new BadRequestException('Montant faucet invalide');
         }
 
-        const amount = Math.floor(amountUnits * 100);
+        const amount = amountUnits;
         return this.svc.credit(userId, amount, { source: 'faucet' });
     }
 
@@ -83,7 +83,7 @@ export class WalletController {
             throw new ForbiddenException('Accès refusé : réservé aux administrateurs');
         }
 
-        const amount = Math.floor(Number(body.amount) * 100);
+        const amount = Number(body.amount);
         if (!body.targetUserId || !Number.isFinite(amount) || amount <= 0) {
             throw new BadRequestException('Données invalides pour crédit');
         }

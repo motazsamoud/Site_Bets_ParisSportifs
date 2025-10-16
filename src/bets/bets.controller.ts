@@ -64,7 +64,7 @@ export class BetsController {
         return this.svc.listBets(user.id);
     }
 
-    /** 📜 Historique d’un utilisateur */
+    /** 📜 Historique d’un utilisateur spécifique */
     @Get('history/:userId')
     async getHistory(@Param('userId') userId: string) {
         console.log(`📜 Récupération de l’historique pour userId = ${userId}`);
@@ -90,7 +90,9 @@ export class BetsController {
 
         try {
             const result = await this.svc.placeBet(user.id, body);
-            console.log(`✅ Pari créé avec succès pour ${user.id} | Gain potentiel = ${result.potentialWin / 100} ${result.currency}`);
+            console.log(
+                `✅ Pari créé avec succès pour ${user.id} | Gain potentiel = ${result.potentialWin} ${result.currency}`,
+            );
             return result;
         } catch (err: any) {
             console.error(`💥 Erreur lors de la création du pari pour ${user.id}:`, err.message);
@@ -98,7 +100,7 @@ export class BetsController {
         }
     }
 
-    /** 🔄 Mise à jour d’un pari existant */
+    /** 🔄 Mise à jour d’un pari existant (résultat, statut, etc.) */
     @Put(':id')
     async updateBet(@Param('id') id: string, @Body() body: any) {
         console.log(`🛠️ Mise à jour du pari ${id}`);
