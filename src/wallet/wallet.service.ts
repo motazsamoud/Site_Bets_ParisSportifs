@@ -30,7 +30,7 @@ export class WalletService {
         const wallet = await this.getOrCreate(userId);
         return {
             userId,
-            balanceCents: wallet.balanceCents,
+            balanceCents: wallet.balanceCents / 100,
             currency: wallet.currency,
         };
     }
