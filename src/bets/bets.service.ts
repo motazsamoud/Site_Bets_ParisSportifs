@@ -68,44 +68,44 @@ export class BetsService {
 
     /** 🎯 Place un pari : débit wallet + création du bet */
     /** 🎯 Place un pari : débit wallet + création du bet */
+
     async placeBet(userId: string, body: { stake: number; selections: any[] }) {
         const selections = this.normalizeSelections(body.selections);
 
-        const stakeTND = Number(body.stake);
-        if (!Number.isFinite(stakeTND) || stakeTND <= 0) {
+        const stake = Number(body.stake);
+        if (!Number.isFinite(stake) || stake <= 0) {
             throw new BadRequestException('Stake invalide');
         }
 
         const combinedOdds = this.computeCombinedOdds(selections);
-        const potentialWinTND = stakeTND * combinedOdds;
+        const potentialWin = stake * combinedOdds;
 
-        // 💳 Corrigé : on débite seulement la mise
-        await this.wallet.debitIfEnough(userId, stakeTND, { reason: 'bet_place' });
+        // 💳 Débit réel du wallet en TND
+        await this.wallet.debitIfEnough(userId, stake, { reason: 'bet_place' });
 
         // 🧾 Enregistrement du pari
         const bet = await this.betModel.create({
             userId,
             selections,
-            stakeCents: Math.floor(stakeTND * 100),
-            potentialWinCents: Math.floor(potentialWinTND * 100),
+            stake,
+            potentialWin,
             combinedOdds,
             status: 'pending',
             createdAt: new Date(),
         });
 
-        // 💰 Retourne le solde mis à jour
-        const { balanceCents, currency } = await this.wallet.getBalance(userId);
+        // 💰 Solde à jour
+        const { balance, currency } = await this.wallet.getBalance(userId);
 
         return {
             betId: String(bet._id),
             combinedOdds,
-            stakeCents: Math.floor(stakeTND * 100),
-            potentialWinCents: Math.floor(potentialWinTND * 100),
+            stake,
+            potentialWin,
             currency,
-            balanceCents,
+            balance,
         };
     }
-
 
     /** 🔹 Liste des paris d’un utilisateur */
     async listBets(userId: string) {
@@ -115,8 +115,8 @@ export class BetsService {
             id: String(r._id),
             userId: r.userId,
             selections: r.selections,
-            stakeCents: r.stakeCents,
-            potentialWinCents: r.potentialWinCents,
+            stake: r.stake,
+            potentialWin: r.potentialWin,
             combinedOdds: r.combinedOdds,
             status: r.status,
             createdAt: r.createdAt,
@@ -133,32 +133,18 @@ export class BetsService {
         const existing = await this.betModel.findById(id);
         if (!existing) throw new BadRequestException('Pari introuvable');
 
-        if (['won', 'lost', 'void'].includes(existing.status)) {
-            console.log(`⛔ Pari déjà finalisé (${existing.status}), ignoré`);
-            return existing;
-        }
+        if (['won', 'lost', 'void'].includes(existing.status)) return existing;
 
         if (data.status) existing.status = data.status;
         if (data.selections) existing.selections = data.selections;
         (existing as any).updatedAt = new Date();
-
         await existing.save();
 
         if (existing.status === 'won') {
-            // Crédit en TND mais montant attendu en centimes → conversion
-            const winTND = existing.potentialWinCents / 100;
-            await this.wallet.credit(existing.userId, winTND, {
+            await this.wallet.credit(existing.userId, existing.potentialWin, {
                 reason: 'bet_win',
                 metadata: { betId: String(existing._id) },
             });
-        }
-
-        if (['won', 'lost'].includes(existing.status)) {
-            try {
-                await this.archiveBet(existing);
-            } catch (err) {
-                console.error('❌ Erreur archive bet:', err);
-            }
         }
 
         return existing;
@@ -174,8 +160,8 @@ export class BetsService {
             betId: bet._id,
             userId: bet.userId,
             selections: bet.selections,
-            stakeCents: bet.stakeCents,
-            potentialWinCents: bet.potentialWinCents,
+            stake: bet.stake,
+            potentialWin: bet.potentialWin,
             combinedOdds: bet.combinedOdds,
             status: bet.status,
             archivedAt: new Date(),

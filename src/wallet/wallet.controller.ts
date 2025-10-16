@@ -54,8 +54,7 @@ export class WalletController {
         return wallet;
     }
 
-    /** 🪙 Faucet (dev/test) — crédite le compte connecté */
-    @Post('faucet')
+    /** 🪙 Faucet (dev/test) — crédite le compte connecté */@Post('faucet')
     async faucet(
         @Headers() headers: Record<string, string | undefined>,
         @Body() body: { amount?: number },
@@ -63,14 +62,14 @@ export class WalletController {
         const user = this.extractUser(headers);
         const userId = user.id || user.sub;
 
-        const amountUnits = Number(body?.amount ?? 1_000_000);
-        if (!Number.isFinite(amountUnits) || amountUnits <= 0) {
+        const amount = Number(body?.amount ?? 1000);
+        if (!Number.isFinite(amount) || amount <= 0) {
             throw new BadRequestException('Montant faucet invalide');
         }
 
-        const amount = Math.floor(amountUnits * 100);
         return this.svc.credit(userId, amount, { source: 'faucet' });
     }
+
 
     /** 👑 Admin: créditer un autre utilisateur */
     @Post('admin/credit')
@@ -83,7 +82,7 @@ export class WalletController {
             throw new ForbiddenException('Accès refusé : réservé aux administrateurs');
         }
 
-        const amount = Math.floor(Number(body.amount) * 100);
+        const amount = Number(body.amount);
         if (!body.targetUserId || !Number.isFinite(amount) || amount <= 0) {
             throw new BadRequestException('Données invalides pour crédit');
         }
@@ -94,6 +93,7 @@ export class WalletController {
             adminId: admin.id || admin.sub,
         });
     }
+
 
     /** 🔎 Lecture directe (outil/admin) */
     @Get(':userId')

@@ -23,8 +23,8 @@ export class Bet extends Document {
     @Prop({ type: [Selection], required: true })
     selections!: Selection[];
 
-    @Prop({ required: true }) stakeCents!: number;
-    @Prop({ required: true }) potentialWinCents!: number;
+    @Prop({ required: true }) stake!: number;
+    @Prop({ required: true }) potentialWin!: number;
     @Prop({ required: true }) combinedOdds!: number;
 
     @Prop({ required: true, default: 'pending' })

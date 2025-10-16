@@ -90,7 +90,7 @@ export class BetsController {
 
         try {
             const result = await this.svc.placeBet(user.id, body);
-            console.log(`✅ Pari créé avec succès pour ${user.id} | Gain potentiel = ${result.potentialWinCents / 100} ${result.currency}`);
+            console.log(`✅ Pari créé avec succès pour ${user.id} | Gain potentiel = ${result.potentialWin / 100} ${result.currency}`);
             return result;
         } catch (err: any) {
             console.error(`💥 Erreur lors de la création du pari pour ${user.id}:`, err.message);

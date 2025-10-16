@@ -7,7 +7,7 @@ export class Wallet extends Document {
     userId!: string;
 
     @Prop({ required: true, default: 0 })
-    balanceCents!: number;
+    balance!: number;
 
     @Prop({ required: true, default: 'TND' })
     currency!: string;
